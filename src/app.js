@@ -8,13 +8,7 @@ const server = http.createServer((request, response) => {
   const isUsersExist = url.searchParams.has("users");
   const isBooksExist = url.searchParams.has("books");
 
-  if(request.url === "/") {
-    response.statusCode = 200;
-    response.statusMessage = "OK";
-    response.setHeader("Content-Type", "text/plain");
-    response.end("Hello, world!");
-    return;
-  }
+ 
 
   if (isUsersExist) {
     response.statusCode = 200;

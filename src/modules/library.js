@@ -3,12 +3,12 @@ const path = require("path");
 
 const getUsers = () => {
   const filePath = path.join(__dirname, "../data/users.json");
-  return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  return fs.readFileSync(filePath, "utf-8");
 };
 
 const getBooks = () => {
   const filePath = path.join(__dirname, "../data/books.json");
-  return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  return fs.readFileSync(filePath, "utf-8");
 };
 
 const saveUsers = (users) => {

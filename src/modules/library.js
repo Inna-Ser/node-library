@@ -17,8 +17,8 @@ const saveUsers = (users) => {
 };
 
 const addBookToUser = (userId, bookId) => {
-  const books = getBooks();
-  const users = getUsers();
+  const books = JSON.parse(getBooks());
+  const users = JSON.parse(getUsers());
 
   const user = users.find((user) => user.id === userId);
   const book = books.find((book) => book.id === bookId);
@@ -33,8 +33,8 @@ const addBookToUser = (userId, bookId) => {
 };
 
 const delBookFromUser = (userId, bookId) => {
-  const books = getBooks();
-  const users = getUsers();
+  const books = JSON.parse(getBooks());
+  const users = JSON.parse(getUsers());
 
   const user = users.find((user) => user.id === userId);
   const book = books.find((book) => book.id === bookId);

@@ -92,6 +92,39 @@ const server = http.createServer((request, response) => {
     return;
   }
 
+  if (
+    request.method === "DELETE" &&
+    url.pathname.startsWith("/users/") &&
+    url.pathname.endsWith("/books")
+  ) {
+    const pathnameParts = url.pathname.split("/");
+    const userId = parseInt(pathnameParts[2], 10);
+    const queryParams = new URLSearchParams(url.search);
+    const bookId = queryParams.get("bookId");
+
+    if (!bookId) {
+      response.statusCode = 400;
+      response.statusMessage = "Bad Request";
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({ error: "bookId не указан" }));
+      return;
+    }
+    try {
+      delBookFromUser(userId, bookId);
+
+      response.statusCode = 200;
+      response.statusMessage = "OK";
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({ message: "Книга успешно удалена!" }));
+    } catch (error) {
+      response.statusCode = 400;
+      response.statusMessage = "Bad Request";
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
   response.statusCode = 404;
   response.setHeader("Content-Type", "text/plain");
   response.end("404 Not Found");

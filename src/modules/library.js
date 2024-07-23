@@ -11,6 +11,11 @@ const getBooks = () => {
   return fs.readFileSync(filePath, "utf-8");
 };
 
+const getBook = (bookId) => {
+  const books = getBooks();
+  return books.find((book) => book.id === bookId);
+};
+
 const saveUsers = (users) => {
   const filePath = path.join(__dirname, "../data/users.json");
   fs.writeFileSync(filePath, JSON.stringify(users, null, 2), "utf-8");
@@ -51,6 +56,7 @@ const delBookFromUser = (userId, bookId) => {
 module.exports = {
   getUsers,
   getBooks,
+  getBook,
   saveUsers,
   addBookToUser,
   delBookFromUser,

@@ -5,6 +5,7 @@ const {
   saveUsers,
   addBookToUser,
   delBookFromUser,
+  getBook,
 } = require("./modules/library");
 
 const server = http.createServer((request, response) => {
@@ -18,6 +19,31 @@ const server = http.createServer((request, response) => {
     response.statusMessage = "OK";
     response.setHeader("Content-Type", "text/plain");
     response.end("Hello, world!");
+    return;
+  }
+
+  if (url.pathname.match(/^\/books\/\d+$/)) {
+    const bookId = parseInt(url.pathname.split("/")[2], 10);
+    try {
+      const book = getBook(bookId);
+
+      if (!book) {
+        response.statusCode = 404;
+        response.setHeader("Content-Type", "application/json");
+        response.end(JSON.stringify({ error: "Книга не найдена" }));
+        return;
+      }
+
+      response.statusCode = 200;
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify(book));
+    } catch (error) {
+      response.statusCode = 500;
+      response.setHeader("Content-Type", "application/json");
+      response.end(
+        JSON.stringify({ error: "Ошибка сервера при получении книги" })
+      );
+    }
     return;
   }
 

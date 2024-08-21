@@ -3,12 +3,28 @@ const path = require("path");
 
 const getUsers = () => {
   const filePath = path.join(__dirname, "../data/users.json");
-  return fs.readFileSync(filePath, "utf-8");
+  const data = fs.readFileSync(filePath, "utf-8");
+  return JSON.parse(data);
 };
 
 const getBooks = () => {
   const filePath = path.join(__dirname, "../data/books.json");
-  return fs.readFileSync(filePath, "utf-8");
+  const data = fs.readFileSync(filePath, "utf-8");
+  return JSON.parse(data);
+};
+
+const getBookForUser = (userId, bookId) => {
+  const users = JSON.parse(getUsers());
+  const books = JSON.parse(getBooks());
+
+  const user = users.find((user) => user.id === userId);
+  if (!user) {
+    throw new Error("Пользователь не найден");
+  }
+
+  const userBooks = books.filter((book) => user.books.includes(book.id));
+  const userBook = userBooks.find((book) => book.id === bookId);
+  return userBook;
 };
 
 const getBook = (bookId) => {
@@ -19,6 +35,22 @@ const getBook = (bookId) => {
 const saveUsers = (users) => {
   const filePath = path.join(__dirname, "../data/users.json");
   fs.writeFileSync(filePath, JSON.stringify(users, null, 2), "utf-8");
+};
+
+const saveBooks = (books) => {
+  const filePath = path.join(__dirname, "../data/books.json");
+  fs.writeFileSync(filePath, JSON.stringify(books, null, 2), "utf-8");
+};
+
+const changeDataBooks = (bookId, newBookData) => {
+  const books = JSON.parse(getBooks());
+  const bookIndex = books.findIndex((book) => book.id === bookId);
+
+  if (bookIndex === -1) {
+    throw new Error("Книга не найдена");
+  }
+  books[bookIndex] = { ...books[bookIndex], ...newBookData };
+  saveBooks(books);
 };
 
 const addBookToUser = (userId, bookId) => {
@@ -60,4 +92,6 @@ module.exports = {
   saveUsers,
   addBookToUser,
   delBookFromUser,
+  getBookForUser,
+  changeDataBooks,
 };

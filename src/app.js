@@ -1,20 +1,8 @@
-const http = require("http");
-const {
-  getUsers,
-  getBooks,
-  saveUsers,
-  addBookToUser,
-  delBookFromUser,
-  getBook,
-} = require("./modules/library");
-
-const server = http.createServer((request, response) => {
+const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://127.0.0.1:3002`);
+  const pathname = url.pathname;
 
-  const isUsersExist = url.searchParams.has("users");
-  const isBooksExist = url.searchParams.has("books");
-
-  if (request.url === "/") {
+  if (pathname === "/") {
     response.statusCode = 200;
     response.statusMessage = "OK";
     response.setHeader("Content-Type", "text/plain");
@@ -22,10 +10,40 @@ const server = http.createServer((request, response) => {
     return;
   }
 
-  if (url.pathname.match(/^\/books\/\d+$/)) {
-    const bookId = parseInt(url.pathname.split("/")[2], 10);
+  if (request.method === "GET" && pathname === "/users/") {
     try {
-      const book = getBook(bookId);
+      const users = JSON.parse(getUsers());
+      response.statusCode = 200;
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify(users));
+    } catch (error) {
+      response.statusCode = 500;
+      response.setHeader("Content-Type", "application/json");
+      response.end(
+        JSON.stringify({ error: "Ошибка сервера при получении пользователей" })
+      );
+    }
+    return;
+  }
+
+  if (
+    request.method === "GET" &&
+    pathname.startsWith("/users/") &&
+    pathname.includes("/books/")
+  ) {
+    const parts = pathname.split("/");
+    const userId = parseInt(parts[2], 10);
+    const bookId = parseInt(parts[4], 10);
+
+    if (isNaN(userId) || isNaN(bookId)) {
+      response.statusCode = 400;
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({ error: "Некорректный userId или bookId" }));
+      return;
+    }
+
+    try {
+      const book = getBookForUser(bookId, userId);
 
       if (!book) {
         response.statusCode = 404;
@@ -47,50 +65,21 @@ const server = http.createServer((request, response) => {
     return;
   }
 
-  if (isUsersExist) {
-    response.statusCode = 200;
-    response.statusMessage = "OK";
-    response.setHeader("Content-Type", "application/json");
-    response.end(getUsers());
-    return;
-  }
-
-  if (isBooksExist) {
-    response.statusCode = 200;
-    response.statusMessage = "OK";
-    response.setHeader("Content-Type", "application/json");
-    response.end(getBooks());
-    return;
-  }
-
-  if (request.url.startsWith("/users/") && request.url.endsWith("/books")) {
-    const userId = parseInt(url.pathname.split("/")[2], 10); // Извлечение userId из URL
-    const users = JSON.parse(getUsers());
-    const books = JSON.parse(getBooks());
-
-    const user = users.find((user) => user.id === userId);
-
-    if (!user) {
-      response.statusCode = 404;
-      response.setHeader("Content-Type", "application/json");
-      response.end(JSON.stringify({ error: "Пользователь не найден" }));
-      return;
-    }
-
-    const userBooks = books.filter((book) => user.books.includes(book.id));
-    response.statusCode = 200;
-    response.setHeader("Content-Type", "application/json");
-    response.end(JSON.stringify(userBooks));
-    return;
-  }
-
   if (
     request.method === "POST" &&
-    url.pathname.startsWith("/users/") &&
-    url.pathname.endsWith("/books")
+    pathname.startsWith("/users/") &&
+    pathname.includes("/books/")
   ) {
-    const pathnameParts = url.pathname.split("/");
-    const userId = parseInt(pathnameParts[2], 10);
+    const parts = pathname.split("/");
+    const userId = parseInt(parts[2], 10);
+    const bookId = parseInt(parts[4], 10);
+
+    if (isNaN(userId) || isNaN(bookId)) {
+      response.statusCode = 400;
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({ error: "Некорректный userId или bookId" }));
+      return;
+    }
 
     let body = "";
 
@@ -98,11 +87,9 @@ const server = http.createServer((request, response) => {
       body += chunk.toString();
     });
 
-    request.on("end", () => {
+    request.on("end", async () => {
       try {
-        const { bookId } = JSON.parse(body);
-
-        addBookToUser(userId, bookId);
+        await addBookToUser(userId, bookId);
 
         response.statusCode = 200;
         response.statusMessage = "OK";
@@ -120,23 +107,22 @@ const server = http.createServer((request, response) => {
 
   if (
     request.method === "DELETE" &&
-    url.pathname.startsWith("/users/") &&
-    url.pathname.endsWith("/books")
+    pathname.startsWith("/users/") &&
+    pathname.includes("/books/")
   ) {
-    const pathnameParts = url.pathname.split("/");
-    const userId = parseInt(pathnameParts[2], 10);
-    const queryParams = new URLSearchParams(url.search);
-    const bookId = queryParams.get("bookId");
+    const parts = pathname.split("/");
+    const userId = parseInt(parts[2], 10);
+    const bookId = parseInt(parts[4], 10);
 
-    if (!bookId) {
+    if (isNaN(userId) || isNaN(bookId)) {
       response.statusCode = 400;
-      response.statusMessage = "Bad Request";
       response.setHeader("Content-Type", "application/json");
-      response.end(JSON.stringify({ error: "bookId не указан" }));
+      response.end(JSON.stringify({ error: "Некорректный userId или bookId" }));
       return;
     }
+
     try {
-      delBookFromUser(userId, bookId);
+      await delBookFromUser(userId, bookId);
 
       response.statusCode = 200;
       response.statusMessage = "OK";
@@ -151,11 +137,44 @@ const server = http.createServer((request, response) => {
     return;
   }
 
+  if (request.method === "PUT" && pathname.startsWith("/books/")) {
+    const parts = pathname.split("/");
+    const bookId = parseInt(parts[2], 10);
+
+    if (isNaN(bookId)) {
+      response.statusCode = 400;
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({ error: "Некорректный bookId" }));
+      return;
+    }
+
+    let body = "";
+    request.on("data", (chunk) => {
+      body += chunk.toString();
+    });
+
+    request.on("end", async () => {
+      try {
+        const newBookData = JSON.parse(body);
+        await changeDataBooks(bookId, newBookData);
+
+        response.statusCode = 200;
+        response.statusMessage = "OK";
+        response.setHeader("Content-Type", "application/json");
+        response.end(
+          JSON.stringify({ message: "Данные книги успешно изменены" })
+        );
+      } catch (error) {
+        response.statusCode = 500;
+        response.statusMessage = "Internal Server Error";
+        response.setHeader("Content-Type", "application/json");
+        response.end(JSON.stringify({ error: "Ошибка сервера" }));
+      }
+    });
+    return;
+  }
+
   response.statusCode = 404;
   response.setHeader("Content-Type", "text/plain");
   response.end("404 Not Found");
-});
-
-server.listen(3002, () => {
-  console.log("Сервер запущен по адресу http://127.0.0.1:3002");
 });

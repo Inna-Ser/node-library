@@ -1,5 +1,6 @@
-const fs = require("fs");
+const http = require("http");
 const path = require("path");
+const fs = require("fs");
 
 const getUsers = () => {
   const filePath = path.join(__dirname, "../data/users.json");
@@ -12,7 +13,6 @@ const getBooks = () => {
   const data = fs.readFileSync(filePath, "utf-8");
   return JSON.parse(data);
 };
-
 const getBookForUser = (userId, bookId) => {
   const users = JSON.parse(getUsers());
   const books = JSON.parse(getBooks());
